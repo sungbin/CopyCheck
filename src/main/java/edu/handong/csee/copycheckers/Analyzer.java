@@ -4,10 +4,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -35,26 +37,20 @@ public class Analyzer {
 			final CompilationUnit cu = (CompilationUnit) parser.createAST(null);
 
 			cu.accept(new ASTVisitor() {
-
-				// Set names = new HashSet();
-
 				public boolean visit(FieldDeclaration node) {
-					//System.out.print(node);
-					//System.out.println(node.fragments());
+					addFieldVariable(fieldVariable, node);
 					return false; // do not continue to avoid usage info
 				}
 
 				public boolean visit(VariableDeclarationFragment node) {
 					SimpleName name = node.getName();
-					// this.names.add(name.getIdentifier());
 					localVariable.add(name.toString());
-					// System.out.println("Declaration of '" + name + "' at line" +
-					// cu.getLineNumber(name.getStartPosition()));
 					return false; // do not continue to avoid usage info
 				}
 			});
 
 			oneFile.setLocalVariable(localVariable);
+			oneFile.setFieldVariable(fieldVariable);
 		} catch (IOException e) {
 			System.out.println("File not exist!");
 			e.printStackTrace();
@@ -62,7 +58,41 @@ public class Analyzer {
 		return oneFile;
 	}
 
-	private static String readFile(File f) throws IOException {
+	private void addFieldVariable(HashMap<String, String> fieldVariable, FieldDeclaration node) {
+		Iterator<Object> itr = node.fragments().iterator();
+		Pattern p = Pattern.compile("((.+)=(.+)|.+)");
+
+		while(itr.hasNext()) {
+			String declaration = itr.next().toString();
+			//System.out.println(declaration);
+			divideAndPush(fieldVariable,declaration,p);
+			
+		}
+
+		
+	}
+
+	private void divideAndPush(HashMap<String, String> fieldVariable, String declaration, Pattern p) {
+		String name = null;
+		String value = null;
+		
+		Matcher matcher = p.matcher(declaration);
+		if(matcher.find()) {
+			if(matcher.group(0).contains("=")) {
+				fieldVariable.put(matcher.group(2), matcher.group(3));
+			} else {
+				fieldVariable.put(matcher.group(0), null);
+			}
+		} else {
+			try {
+				throw new Exception("Error: declaration");
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+			}
+		}
+	}
+
+	private String readFile(File f) throws IOException {
 		StringBuffer contents = new StringBuffer();
 
 		FileReader rd = new FileReader(f);
