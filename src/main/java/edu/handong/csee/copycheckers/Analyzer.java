@@ -25,7 +25,6 @@ public class Analyzer {
 
 		try {
 			String lines = readFile(f);
-			oneFile.setCode(lines);
 			Set<String> localVariable = new HashSet<String>();
 			HashMap<String, String> fieldVariable = new HashMap();
 
@@ -49,8 +48,10 @@ public class Analyzer {
 				}
 			});
 
+			oneFile.setCode(lines);
 			oneFile.setLocalVariable(localVariable);
 			oneFile.setFieldVariable(fieldVariable);
+			oneFile.setFile(f);
 		} catch (IOException e) {
 			System.out.println("File not exist!");
 			e.printStackTrace();
